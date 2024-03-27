@@ -27,7 +27,13 @@ class Program
                 // Asynchronously read the output from the Bridge
                 var readTask = ReadFromProcessStdOutAsync(bridge, responses);
 
-                // Write a command to the Bridge's standard input
+                // Write commands to the Bridge's standard input
+
+                bridge.StandardInput.WriteLine("{\"command\":\"open\",\"params\":{\"address\":\"SupernovaSimulatedPort\"}}");
+                bridge.StandardInput.Flush();
+
+                await Task.Delay(1000); // Delay before exit
+
                 bridge.StandardInput.WriteLine("{\"command\":\"exit\"}");
                 bridge.StandardInput.Flush();
 
