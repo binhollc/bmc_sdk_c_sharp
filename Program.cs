@@ -1,10 +1,11 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         // Define the process using ProcessStartInfo
         var processStartInfo = new ProcessStartInfo
@@ -22,15 +23,11 @@ class Program
         {
             if (process != null)
             {
-                // Write a command to the process's standard input
-                string jsonString = "{\"command\":\"exit\"}";
-                process.StandardInput.WriteLine(jsonString);
-                process.StandardInput.Flush();
-                process.StandardInput.Close(); // Signal the end of input
+                // Asynchronously write a command to the process's standard input
+                await WriteToProcessStdInAsync(process.StandardInput, "{\"command\":\"exit\"}");
 
-                // Read the output from the process
-                string output = process.StandardOutput.ReadToEnd();
-
+                // Asynchronously read the output from the process
+                string output = await ReadFromProcessStdOutAsync(process);
                 Console.WriteLine("Output from the process:");
                 Console.WriteLine(output);
             }
@@ -39,5 +36,19 @@ class Program
                 Console.WriteLine("Failed to start process.");
             }
         }
+    }
+
+    static async Task WriteToProcessStdInAsync(StreamWriter stdin, string content)
+    {
+        await stdin.WriteLineAsync(content);
+        await stdin.FlushAsync();
+        stdin.Close(); // Signal the end of input
+    }
+
+    static async Task<string> ReadFromProcessStdOutAsync(Process process)
+    {
+        // Read the output from the process asynchronously
+        string output = await process.StandardOutput.ReadToEndAsync();
+        return output;
     }
 }
