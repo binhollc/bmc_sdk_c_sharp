@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -7,7 +8,6 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        // Define the process using ProcessStartInfo
         var processStartInfo = new ProcessStartInfo
         {
             FileName = "bridge",
@@ -18,37 +18,50 @@ class Program
             CreateNoWindow = true, // This prevents the command window from showing up
         };
 
-        // Start the process
-        using (var process = Process.Start(processStartInfo))
+        using (var bridge = Process.Start(processStartInfo))
         {
-            if (process != null)
+            if (bridge != null)
             {
-                // Asynchronously write a command to the process's standard input
-                await WriteToProcessStdInAsync(process.StandardInput, "{\"command\":\"exit\"}");
+                var responses = new List<string>();
 
-                // Asynchronously read the output from the process
-                string output = await ReadFromProcessStdOutAsync(process);
-                Console.WriteLine("Output from the process:");
-                Console.WriteLine(output);
+                // Asynchronously read the output from the Bridge
+                var readTask = ReadFromProcessStdOutAsync(bridge, responses);
+
+                // Write a command to the Bridge's standard input
+                bridge.StandardInput.WriteLine("{\"command\":\"exit\"}");
+                bridge.StandardInput.Flush();
+
+                // Wait for the reading task to complete
+                await readTask;
+
+                bridge.StandardInput.Close();
+
+                Console.WriteLine("Output from the bridge:");
+                foreach (var response in responses)
+                {
+                    Console.WriteLine(response);
+                }
             }
             else
             {
-                Console.WriteLine("Failed to start process.");
+                Console.WriteLine("Failed to start bridge.");
             }
         }
     }
 
-    static async Task WriteToProcessStdInAsync(StreamWriter stdin, string content)
+    static async Task ReadFromProcessStdOutAsync(Process bridge, List<string> responses)
     {
-        await stdin.WriteLineAsync(content);
-        await stdin.FlushAsync();
-        stdin.Close(); // Signal the end of input
-    }
-
-    static async Task<string> ReadFromProcessStdOutAsync(Process process)
-    {
-        // Read the output from the process asynchronously
-        string output = await process.StandardOutput.ReadToEndAsync();
-        return output;
+        while (true)
+        {
+            var line = await bridge.StandardOutput.ReadLineAsync();
+            if (line != null)
+            {
+                responses.Add(line);
+                if (line.Contains("exit"))
+                {
+                    break;
+                }
+            }
+        }
     }
 }
