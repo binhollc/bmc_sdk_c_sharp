@@ -1,73 +1,24 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Threading.Tasks;
-
 class Program
 {
     static async Task Main(string[] args)
     {
-        var processStartInfo = new ProcessStartInfo
+        using var bridgeClient = new BridgeClient();
+        bridgeClient.OnResponseReceived += (sender, response) =>
         {
-            FileName = "bridge",
-            Arguments = "BinhoSupernova",
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true, // This prevents the command window from showing up
+            Console.WriteLine("Received response: " + response);
         };
 
-        using (var bridge = Process.Start(processStartInfo))
-        {
-            if (bridge != null)
-            {
-                var responses = new List<string>();
+        await bridgeClient.StartAsync();
 
-                // Asynchronously read the output from the Bridge
-                var readTask = ReadFromProcessStdOutAsync(bridge, responses);
+        bridgeClient.SendCommand("{\"command\":\"open\",\"params\":{\"address\":\"SupernovaSimulatedPort\"}}");
+        bridgeClient.SendCommand("{\"command\":\"i3c_init_bus\",\"params\":{\"busVoltageInV\":\"3.3\"}}");
+        bridgeClient.SendCommand("{\"command\":\"get_usb_string\",\"params\":{\"subCommand\":\"MANUFACTURER\"}}");
+        bridgeClient.SendCommand("{\"command\":\"get_usb_string\",\"params\":{\"subCommand\":\"PRODUCT_NAME\"}}");
+        bridgeClient.SendCommand("{\"command\":\"get_usb_string\",\"params\":{\"subCommand\":\"SERIAL_NUMBER\"}}");
+        bridgeClient.SendCommand("{\"command\":\"get_usb_string\",\"params\":{\"subCommand\":\"HW_VERSION\"}}");
+        bridgeClient.SendCommand("{\"command\":\"get_usb_string\",\"params\":{\"subCommand\":\"FW_VERSION\"}}");
+        bridgeClient.SendCommand("{\"command\":\"i3c_write_using_subaddress\",\"params\":{\"address\":\"7E\",\"subaddress\":\"0000\",\"mode\":\"SDR\",\"pushPullClockFrequencyInMHz\":\"5\",\"openDrainClockFrequencyInKHz\":\"1250\",\"writeBuffer\":\"04\"}}");
 
-                // Write commands to the Bridge's standard input
-
-                bridge.StandardInput.WriteLine("{\"command\":\"open\",\"params\":{\"address\":\"SupernovaSimulatedPort\"}}");
-                bridge.StandardInput.Flush();
-
-                await Task.Delay(1000); // Delay before exit
-
-                bridge.StandardInput.WriteLine("{\"command\":\"exit\"}");
-                bridge.StandardInput.Flush();
-
-                // Wait for the reading task to complete
-                await readTask;
-
-                bridge.StandardInput.Close();
-
-                Console.WriteLine("Output from the bridge:");
-                foreach (var response in responses)
-                {
-                    Console.WriteLine(response);
-                }
-            }
-            else
-            {
-                Console.WriteLine("Failed to start bridge.");
-            }
-        }
-    }
-
-    static async Task ReadFromProcessStdOutAsync(Process bridge, List<string> responses)
-    {
-        while (true)
-        {
-            var line = await bridge.StandardOutput.ReadLineAsync();
-            if (line != null)
-            {
-                responses.Add(line);
-                if (line.Contains("exit"))
-                {
-                    break;
-                }
-            }
-        }
+        await Task.Delay(1000); // Wait before exit
     }
 }
