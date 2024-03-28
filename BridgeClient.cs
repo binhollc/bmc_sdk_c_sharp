@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 public class BridgeClient : IDisposable
 {
@@ -35,9 +36,16 @@ public class BridgeClient : IDisposable
         }
     }
 
-    public void SendCommand(string command)
+    public void SendCommand(string command, Dictionary<string, object> paramsDict = null)
     {
-        bridgeProcess.StandardInput.WriteLine(command);
+        var commandObject = new
+        {
+            command = command,
+            @params = paramsDict ?? new Dictionary<string, object>() // Use an empty dictionary if paramsDict is null
+        };
+
+        var jsonString = JsonSerializer.Serialize(commandObject);
+        bridgeProcess.StandardInput.WriteLine(jsonString);
         bridgeProcess.StandardInput.Flush();
     }
 
