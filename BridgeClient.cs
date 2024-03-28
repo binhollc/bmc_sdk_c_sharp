@@ -7,6 +7,7 @@ using System.Text.Json;
 public class BridgeClient : IDisposable
 {
     private Process bridgeProcess;
+    private int transactionId = 0;
     public event EventHandler<string> OnResponseReceived;
 
     public BridgeClient()
@@ -38,8 +39,10 @@ public class BridgeClient : IDisposable
 
     public void SendCommand(string command, Dictionary<string, object> paramsDict = null)
     {
+        transactionId++;
         var commandObject = new
         {
+            transaction_id = transactionId.ToString(),
             command = command,
             @params = paramsDict ?? new Dictionary<string, object>() // Use an empty dictionary if paramsDict is null
         };
