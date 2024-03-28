@@ -28,8 +28,8 @@ public class BridgeClient : IDisposable
     private Process bridgeProcess;
     private int transactionId = 0;
     public event EventHandler<string> OnResponseReceived;
-    private readonly Dictionary<string, (object commandObject, List<string> responses)> waitingList
-        = new Dictionary<string, (object commandObject, List<string> responses)>();
+    private readonly Dictionary<string, (object commandObject, List<BaseResponse> responses, TaskCompletionSource<BaseResponse> tcs)> waitingList
+        = new Dictionary<string, (object commandObject, List<BaseResponse> responses, TaskCompletionSource<BaseResponse> tcs)>();
 
     public BridgeClient()
     {
@@ -58,9 +58,10 @@ public class BridgeClient : IDisposable
         }
     }
 
-    public void SendCommand(string command, Dictionary<string, object> paramsDict = null)
+    public async Task<List<BaseResponse>> SendCommand(string command, Dictionary<string, object> paramsDict = null)
     {
-        var strTransactionId = (transactionId++).ToString();
+        transactionId++;
+        var strTransactionId = transactionId.ToString();
         var commandObject = new
         {
             transaction_id = strTransactionId,
@@ -68,23 +69,56 @@ public class BridgeClient : IDisposable
             @params = paramsDict ?? new Dictionary<string, object>() // Use an empty dictionary if paramsDict is null
         };
 
+
+        var jsonString = JsonSerializer.Serialize(commandObject);
+        bridgeProcess.StandardInput.WriteLine(jsonString);
+        bridgeProcess.StandardInput.Flush();
+
         // ---
         // Command sequencing logic starts
         // ---
 
-        // Add the command object to the waiting list along with an empty list for responses.
+        // Initialize TaskCompletionSource for this command
+        var tcs = new TaskCompletionSource<BaseResponse>();
+
+        // Corrected tuple to match the expected types
         lock (waitingList)
         {
-            waitingList.Add(strTransactionId, (commandObject, new List<string>()));
+            waitingList.Add(strTransactionId, (commandObject: commandObject, responses: new List<BaseResponse>(), tcs: tcs));
         }
 
         // ---
         // Command sequencing logic ends
         // ---
 
-        var jsonString = JsonSerializer.Serialize(commandObject);
-        bridgeProcess.StandardInput.WriteLine(jsonString);
-        bridgeProcess.StandardInput.Flush();
+        await WaitFor(strTransactionId);
+
+        List<BaseResponse> responses;
+        lock (waitingList)
+        {
+            responses = waitingList[strTransactionId].responses;
+            waitingList.Remove(strTransactionId); // Clean up
+        }
+
+        return responses;
+    }
+
+    private async Task<BaseResponse> WaitFor(string transactionId)
+    {
+        TaskCompletionSource<BaseResponse> tcs;
+        lock (waitingList)
+        {
+            if (!waitingList.TryGetValue(transactionId, out var entry))
+            {
+                throw new InvalidOperationException($"Transaction ID {transactionId} not found.");
+            }
+
+            tcs = entry.tcs ?? new TaskCompletionSource<BaseResponse>();
+            entry.tcs = tcs; // Ensure the TCS is stored back in case it was just created
+        }
+
+        // This will asynchronously wait until the TCS is set elsewhere
+        return await tcs.Task;
     }
 
     private async Task ReadFromProcessStdOutAsync()
@@ -106,7 +140,12 @@ public class BridgeClient : IDisposable
               {
                   if (waitingList.TryGetValue(response.TransactionId, out var entry))
                   {
-                      entry.responses.Add(line); // Add the response to the corresponding command entry.
+                      entry.responses.Add(response); // Add the response to the corresponding command entry.
+
+                      if (!response.IsPromise)
+                      {
+                          entry.tcs?.TrySetResult(response); // Complete the TaskCompletionSource if is_promise is False
+                      }
                   }
               }
             }
@@ -119,7 +158,7 @@ public class BridgeClient : IDisposable
 
     public void Dispose()
     {
-        SendCommand("{\"command\":\"exit\"}"); // Ensure the process is signaled to exit before disposing.
+        SendCommand("exit"); // Ensure the process is signaled to exit before disposing.
         bridgeProcess?.Dispose();
     }
 }
