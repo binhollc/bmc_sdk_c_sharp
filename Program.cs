@@ -11,14 +11,7 @@ class Program
             Console.WriteLine($"Status: {response.Status}");
             Console.WriteLine($"Type: {response.Type}");
             Console.WriteLine($"Is Promise: {response.IsPromise}");
-
-            // Assuming the Data might be a simple value or complex object, you'll serialize it to a JSON string for printing.
-            // You could also implement custom handling depending on the expected structure of Data.
-            string responseData = JsonSerializer.Serialize(
-                response.Data,
-                new JsonSerializerOptions { WriteIndented = true }
-            );
-            Console.WriteLine($"Data: {responseData}");
+            Console.WriteLine($"Data: {response.Data}"); // Note: Data is a JsonElement.
             Console.WriteLine("----------------------------------------");
         }
     }
