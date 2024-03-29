@@ -96,7 +96,5 @@ class ExampleI3cBasics
                 }
             )
         );
-
-        await Task.Delay(1000); // Wait before exit
     }
 }
