@@ -38,12 +38,20 @@ class Program
         printResponses(await bridgeClient.SendCommand("get_usb_string", new Dictionary<string, object> { {"subCommand", "HW_VERSION"} }));
         printResponses(await bridgeClient.SendCommand("get_usb_string", new Dictionary<string, object> { {"subCommand", "FW_VERSION"} }));
         printResponses(await bridgeClient.SendCommand("i3c_write_using_subaddress", new Dictionary<string, object> {
-          {"address", "7E"},
+          {"address", "08"},
           {"subaddress", "0000"},
           {"mode", "SDR"},
           {"pushPullClockFrequencyInMHz", "5"},
           {"openDrainClockFrequencyInKHz", "1250"},
           {"writeBuffer", "04"},
+        }));
+        printResponses(await bridgeClient.SendCommand("i3c_read_using_subaddress", new Dictionary<string, object> {
+          {"address", "08"},
+          {"subaddress", "0000"},
+          {"mode", "SDR"},
+          {"pushPullClockFrequencyInMHz", "5"},
+          {"openDrainClockFrequencyInKHz", "1250"},
+          {"bytesToRead", "1"},
         }));
 
         await Task.Delay(1000); // Wait before exit
