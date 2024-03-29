@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-class ExampleI3cBasics.cs
+class ExampleI3cBasics
 {
     private static void printResponses(List<CommandResponse> responses)
     {
@@ -16,7 +16,7 @@ class ExampleI3cBasics.cs
         }
     }
 
-    static async Task Main(string[] args)
+    public static async Task Run()
     {
         using var bridgeClient = new BridgeClient();
         // bridgeClient.OnResponseReceived += (sender, response) =>
