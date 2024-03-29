@@ -8,7 +8,8 @@ class Program
     {
         var examples = new Dictionary<string, Func<Task>>()
         {
-            ["i3c_basics"] = ExampleI3cBasics.Run,
+            ["i3c_basics"]  = ExampleI3cBasics.Run,
+            ["i3c_ibis"]    = ExampleI3cIbis.Run,
             // Add new examples here, like so:
             // ["example_key"] = ExampleClass.RunMethod,
         };
