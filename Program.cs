@@ -2,7 +2,7 @@ using System.Text.Json;
 
 class Program
 {
-    private static void printResponses(List<BaseResponse> responses)
+    private static void printResponses(List<CommandResponse> responses)
     {
         Console.WriteLine("Printing responses...");
         foreach (var response in responses)

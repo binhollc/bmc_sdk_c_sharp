@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.Text.Json.Serialization;
 using System.Text.Json;
 
-public class BaseResponse
+public class CommandResponse
 {
     [JsonPropertyName("transaction_id")]
     public string TransactionId { get; set; }
@@ -28,8 +28,8 @@ public class BridgeClient : IDisposable
     private Process bridgeProcess;
     private int transactionId = 0;
     public event EventHandler<string> OnResponseReceived;
-    private readonly Dictionary<string, (object commandObject, List<BaseResponse> responses, TaskCompletionSource<BaseResponse> tcs)> waitingList
-        = new Dictionary<string, (object commandObject, List<BaseResponse> responses, TaskCompletionSource<BaseResponse> tcs)>();
+    private readonly Dictionary<string, (object commandObject, List<CommandResponse> responses, TaskCompletionSource<CommandResponse> tcs)> waitingList
+        = new Dictionary<string, (object commandObject, List<CommandResponse> responses, TaskCompletionSource<CommandResponse> tcs)>();
 
     public BridgeClient()
     {
@@ -58,7 +58,7 @@ public class BridgeClient : IDisposable
         }
     }
 
-    public async Task<List<BaseResponse>> SendCommand(string command, Dictionary<string, object> paramsDict = null)
+    public async Task<List<CommandResponse>> SendCommand(string command, Dictionary<string, object> paramsDict = null)
     {
         transactionId++;
         var strTransactionId = transactionId.ToString();
@@ -79,21 +79,21 @@ public class BridgeClient : IDisposable
         // ---
 
         // Initialize TaskCompletionSource for this command
-        var tcs = new TaskCompletionSource<BaseResponse>();
+        var tcs = new TaskCompletionSource<CommandResponse>();
 
         // Corrected tuple to match the expected types
         lock (waitingList)
         {
-            waitingList.Add(strTransactionId, (commandObject: commandObject, responses: new List<BaseResponse>(), tcs: tcs));
+            waitingList.Add(strTransactionId, (commandObject: commandObject, responses: new List<CommandResponse>(), tcs: tcs));
         }
+
+        await WaitFor(strTransactionId);
 
         // ---
         // Command sequencing logic ends
         // ---
 
-        await WaitFor(strTransactionId);
-
-        List<BaseResponse> responses;
+        List<CommandResponse> responses;
         lock (waitingList)
         {
             responses = waitingList[strTransactionId].responses;
@@ -103,9 +103,9 @@ public class BridgeClient : IDisposable
         return responses;
     }
 
-    private async Task<BaseResponse> WaitFor(string transactionId)
+    private async Task<CommandResponse> WaitFor(string transactionId)
     {
-        TaskCompletionSource<BaseResponse> tcs;
+        TaskCompletionSource<CommandResponse> tcs;
         lock (waitingList)
         {
             if (!waitingList.TryGetValue(transactionId, out var entry))
@@ -113,7 +113,7 @@ public class BridgeClient : IDisposable
                 throw new InvalidOperationException($"Transaction ID {transactionId} not found.");
             }
 
-            tcs = entry.tcs ?? new TaskCompletionSource<BaseResponse>();
+            tcs = entry.tcs ?? new TaskCompletionSource<CommandResponse>();
             entry.tcs = tcs; // Ensure the TCS is stored back in case it was just created
         }
 
@@ -132,7 +132,7 @@ public class BridgeClient : IDisposable
             // Command sequencing logic starts
             // ---
 
-            var response = JsonSerializer.Deserialize<BaseResponse>(line);
+            var response = JsonSerializer.Deserialize<CommandResponse>(line);
 
             if (response != null && !response.TransactionId.Equals("0"))
             {
