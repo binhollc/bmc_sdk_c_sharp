@@ -27,7 +27,8 @@ public class BridgeClient : IDisposable
 {
     private Process bridgeProcess;
     private int transactionId = 0;
-    public event EventHandler<string> OnResponseReceived;
+    public event EventHandler<CommandResponse> OnResponseReceived;
+    public event EventHandler<CommandResponse> OnNotificationReceived;
     private readonly Dictionary<string, (object commandObject, List<CommandResponse> responses, TaskCompletionSource<CommandResponse> tcs)> waitingList
         = new Dictionary<string, (object commandObject, List<CommandResponse> responses, TaskCompletionSource<CommandResponse> tcs)>();
 
@@ -126,32 +127,40 @@ public class BridgeClient : IDisposable
         while (!bridgeProcess.StandardOutput.EndOfStream)
         {
             var line = await bridgeProcess.StandardOutput.ReadLineAsync();
-            OnResponseReceived?.Invoke(this, line);
 
             var response = JsonSerializer.Deserialize<CommandResponse>(line);
 
-            if (response != null && !response.TransactionId.Equals("0"))
+            if (response != null)
             {
-              // ---
-              // Command sequencing logic starts
-              // ---
-
-              lock (waitingList)
+              if (response.TransactionId.Equals("0"))
               {
-                  if (waitingList.TryGetValue(response.TransactionId, out var entry))
-                  {
-                      entry.responses.Add(response); // Add the response to the corresponding command entry.
-
-                      if (!response.IsPromise)
-                      {
-                          entry.tcs?.TrySetResult(response); // Complete the TaskCompletionSource if is_promise is False
-                      }
-                  }
+                OnNotificationReceived?.Invoke(this, response);
               }
+              else
+              {
+                OnResponseReceived?.Invoke(this, response);
 
-              // ---
-              // Command sequencing logic ends
-              // ---
+                // ---
+                // Command sequencing logic starts
+                // ---
+
+                lock (waitingList)
+                {
+                    if (waitingList.TryGetValue(response.TransactionId, out var entry))
+                    {
+                        entry.responses.Add(response); // Add the response to the corresponding command entry.
+
+                        if (!response.IsPromise)
+                        {
+                            entry.tcs?.TrySetResult(response); // Complete the TaskCompletionSource if is_promise is False
+                        }
+                    }
+                }
+
+                // ---
+                // Command sequencing logic ends
+                // ---
+              }
             }
         }
     }
