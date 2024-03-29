@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-class Program
+class ExampleI3cBasics.cs
 {
     private static void printResponses(List<CommandResponse> responses)
     {
