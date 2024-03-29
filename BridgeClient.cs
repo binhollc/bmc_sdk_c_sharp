@@ -128,14 +128,14 @@ public class BridgeClient : IDisposable
             var line = await bridgeProcess.StandardOutput.ReadLineAsync();
             OnResponseReceived?.Invoke(this, line);
 
-            // ---
-            // Command sequencing logic starts
-            // ---
-
             var response = JsonSerializer.Deserialize<CommandResponse>(line);
 
             if (response != null && !response.TransactionId.Equals("0"))
             {
+              // ---
+              // Command sequencing logic starts
+              // ---
+
               lock (waitingList)
               {
                   if (waitingList.TryGetValue(response.TransactionId, out var entry))
@@ -148,11 +148,11 @@ public class BridgeClient : IDisposable
                       }
                   }
               }
-            }
 
-            // ---
-            // Command sequencing logic ends
-            // ---
+              // ---
+              // Command sequencing logic ends
+              // ---
+            }
         }
     }
 
