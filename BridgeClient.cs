@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Text.Json.Serialization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 public class CommandResponse
 {
@@ -29,8 +29,22 @@ public class BridgeClient : IDisposable
     private int transactionId = 0;
     public event EventHandler<CommandResponse> OnResponseReceived;
     public event EventHandler<CommandResponse> OnNotificationReceived;
-    private readonly Dictionary<string, (object commandObject, List<CommandResponse> responses, TaskCompletionSource<CommandResponse> tcs)> waitingList
-        = new Dictionary<string, (object commandObject, List<CommandResponse> responses, TaskCompletionSource<CommandResponse> tcs)>();
+    private readonly Dictionary<
+        string,
+        (
+            object commandObject,
+            List<CommandResponse> responses,
+            TaskCompletionSource<CommandResponse> tcs
+        )
+    > waitingList =
+        new Dictionary<
+            string,
+            (
+                object commandObject,
+                List<CommandResponse> responses,
+                TaskCompletionSource<CommandResponse> tcs
+            )
+        >();
 
     public BridgeClient()
     {
@@ -59,7 +73,10 @@ public class BridgeClient : IDisposable
         }
     }
 
-    public async Task<List<CommandResponse>> SendCommand(string command, Dictionary<string, object> paramsDict = null)
+    public async Task<List<CommandResponse>> SendCommand(
+        string command,
+        Dictionary<string, object> paramsDict = null
+    )
     {
         transactionId++;
         var strTransactionId = transactionId.ToString();
@@ -69,7 +86,6 @@ public class BridgeClient : IDisposable
             command = command,
             @params = paramsDict ?? new Dictionary<string, object>() // Use an empty dictionary if paramsDict is null
         };
-
 
         var jsonString = JsonSerializer.Serialize(commandObject);
         bridgeProcess.StandardInput.WriteLine(jsonString);
@@ -85,7 +101,10 @@ public class BridgeClient : IDisposable
         // Corrected tuple to match the expected types
         lock (waitingList)
         {
-            waitingList.Add(strTransactionId, (commandObject: commandObject, responses: new List<CommandResponse>(), tcs: tcs));
+            waitingList.Add(
+                strTransactionId,
+                (commandObject: commandObject, responses: new List<CommandResponse>(), tcs: tcs)
+            );
         }
 
         await WaitFor(strTransactionId);
@@ -132,35 +151,35 @@ public class BridgeClient : IDisposable
 
             if (response != null)
             {
-              if (response.TransactionId.Equals("0"))
-              {
-                OnNotificationReceived?.Invoke(this, response);
-              }
-              else
-              {
-                OnResponseReceived?.Invoke(this, response);
-
-                // ---
-                // Command sequencing logic starts
-                // ---
-
-                lock (waitingList)
+                if (response.TransactionId.Equals("0"))
                 {
-                    if (waitingList.TryGetValue(response.TransactionId, out var entry))
-                    {
-                        entry.responses.Add(response); // Add the response to the corresponding command entry.
+                    OnNotificationReceived?.Invoke(this, response);
+                }
+                else
+                {
+                    OnResponseReceived?.Invoke(this, response);
 
-                        if (!response.IsPromise)
+                    // ---
+                    // Command sequencing logic starts
+                    // ---
+
+                    lock (waitingList)
+                    {
+                        if (waitingList.TryGetValue(response.TransactionId, out var entry))
                         {
-                            entry.tcs?.TrySetResult(response); // Complete the TaskCompletionSource if is_promise is False
+                            entry.responses.Add(response); // Add the response to the corresponding command entry.
+
+                            if (!response.IsPromise)
+                            {
+                                entry.tcs?.TrySetResult(response); // Complete the TaskCompletionSource if is_promise is False
+                            }
                         }
                     }
-                }
 
-                // ---
-                // Command sequencing logic ends
-                // ---
-              }
+                    // ---
+                    // Command sequencing logic ends
+                    // ---
+                }
             }
         }
     }
