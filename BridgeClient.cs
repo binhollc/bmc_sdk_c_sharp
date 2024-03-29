@@ -46,12 +46,12 @@ public class BridgeClient : IDisposable
             )
         >();
 
-    public BridgeClient()
+    public BridgeClient(string commandAdaptor)
     {
         var processStartInfo = new ProcessStartInfo
         {
             FileName = "bridge",
-            Arguments = "BinhoSupernova",
+            Arguments = commandAdaptor,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             UseShellExecute = false,

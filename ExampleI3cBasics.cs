@@ -18,7 +18,7 @@ class ExampleI3cBasics
 
     public static async Task Run()
     {
-        using var bridgeClient = new BridgeClient();
+        using var bridgeClient = new BridgeClient("BinhoSupernova");
         // bridgeClient.OnResponseReceived += (sender, response) =>
         // {
         //     Console.WriteLine("Received response: " + response);

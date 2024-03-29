@@ -2,6 +2,10 @@ using System.Text.Json;
 
 public class ExtendedBridgeClient : BridgeClient
 {
+    public ExtendedBridgeClient() : base("BinhoSupernova")
+    {
+    }
+
     public async Task<List<CommandResponse>> SendI3cWriteUsingSubaddress(string address, string subaddress, string writeBuffer)
     {
         return await SendCommand(
