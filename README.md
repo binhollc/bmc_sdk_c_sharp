@@ -13,6 +13,8 @@ Welcome to the Binho Mission Control C# SDK (BMC C# SDK), a software tool design
 ## Prerequisites
 
 - **BMC Bridge Installation**: The BMC Bridge must be installed separately and located in your system's PATH to run the examples provided with this SDK. This ensures that the SDK can communicate with the host adapters through the Bridge seamlessly.
+  - On **Windows**, the bridge executable can typically be found in `C:\Program Files (x86)\BinhoMissionControlBridge` if the installer was used.
+  - On **Mac and Linux**, the location will be where the bridge package was unzipped.
 - **.NET SDK**: Ensure that the .NET SDK is installed on your development machine to build and execute the examples.
 
 ## Installation
