@@ -11,6 +11,7 @@
   - [I3C Commands](#i3c-commands)
   - [I2C Commands](#i2c-commands)
   - [SPI Commands](#spi-commands)
+  - [UART Commands](#uart-commands)
   - [I3C Common Command Codes (CCC)](#i3c-common-command-codes-ccc)
 - [Response Handling](#response-handling)
 - [Error Handling](#error-handling)
@@ -597,6 +598,191 @@ Writes data to an I2C device using subaddressing (register addressing).
     "status": "success",
     "payload_length": "<Unsigned Integer>",
     "data": ["DE", "AD", "BE", "EF"]
+  }
+}
+```
+
+### UART Commands
+
+#### UART Initialization
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "uart_init",
+  "params": {
+    "baudRate": "<600|1200|2400|4800|9600|14400|19200|38400|56000|57600|115200>",
+    "hardwareHandShake": <Boolean>,
+    "parity": "<0|1|2>",
+    "dataSize": "<0|1>",
+    "stopBit": "1"
+  }
+}
+```
+
+**Field Descriptions:**
+- **`parity`**: Sets the UART parity mode:
+  - `0` = No parity
+  - `1` = Even parity
+  - `2` = Odd parity
+- **`dataSize`**: Defines the number of data bits per frame:
+  - `0` = 7-bit
+  - `1` = 8-bit
+- **`stopBit`**: Selects the number of stop bits:
+  - `0` = 1 stop bit
+  - `1` = 2 stop bits
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "uart_init"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "uart_init",
+    "status": "success"
+  }
+}
+```
+
+#### UART Configuration
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "uart_config",
+  "params": {
+    "baudRate": "<600|1200|2400|4800|9600|14400|19200|38400|56000|57600|115200>",
+    "hardwareHandShake": <Boolean>,
+    "parity": "<0|1|2>",
+    "dataSize": "<0|1>",
+    "stopBit": "1"
+  }
+}
+```
+
+**Field Descriptions:**
+- **`parity`**: Sets the UART parity mode:
+  - `0` = No parity
+  - `1` = Even parity
+  - `2` = Odd parity
+- **`dataSize`**: Defines the number of data bits per frame:
+  - `0` = 7-bit
+  - `1` = 8-bit
+- **`stopBit`**: Selects the number of stop bits:
+  - `0` = 1 stop bit
+  - `1` = 2 stop bits
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "uart_config"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "uart_config",
+    "status": "success"
+  }
+}
+```
+
+#### UART Send
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "uart_send",
+  "params": {
+    "writeBuffer": "<Hex String (e.g. DEADBEEF)>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "uart_send"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "uart_send",
+    "status": "success"
+  }
+}
+```
+
+#### UART Interruption Notification Message
+
+```json
+{
+  "transaction_id": "0",
+  "status": "success",
+  "type": "notification",
+  "is_promise": false,
+  "data": {
+    "type": "UART_MESSAGE_RECEIVED",
+    "payload": ["DE", "AD", "BE", "EF"],
+    "payload_length": 4
   }
 }
 ```
