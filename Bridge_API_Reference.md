@@ -169,22 +169,13 @@ Retrieves USB device information strings.
 
 ### I3C Commands
 
-#### Bus Initialization
+#### I3C Bus Initialization
 
-##### `i3c_init_bus`
-Initializes the I3C bus with specified voltage.
+**Command Request:**
 
-**Parameters:**
 ```json
 {
-  "busVoltageInV": "string"  // Bus voltage (e.g., "1.8", "3.3")
-}
-```
-
-**Example:**
-```json
-{
-  "transaction_id": "3",
+  "transaction_id": "1",
   "command": "i3c_init_bus",
   "params": {
     "busVoltageInV": "3.3"
@@ -192,66 +183,444 @@ Initializes the I3C bus with specified voltage.
 }
 ```
 
-#### Data Transfer
+**Responses:**
 
-##### `i3c_write_using_subaddress`
-Writes data to a device using subaddressing.
+- Immediate Promise Response:
 
-**Parameters:**
 ```json
 {
-  "address": "string",                        // Device address (hex)
-  "subaddress": "string",                     // Register/subaddress (hex)
-  "mode": "string",                           // Transfer mode ("SDR", "HDR-DDR")
-  "pushPullClockFrequencyInMHz": "string",    // Push-pull clock frequency
-  "openDrainClockFrequencyInKHz": "string",   // Open-drain clock frequency
-  "writeBuffer": "string"                     // Data to write (hex)
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_init_bus"
+  }
 }
 ```
 
-**Example:**
+- Final Response to Setting Bus Voltage:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_set_bus_voltage",
+    "status": "success",
+    "result": {}
+  }
+}
+```
+
+- Final Response to Bus Initialization:
+
+```json
+{
+  "transaction_id": "2",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_init_bus",
+    "status": "success",
+    "result": {}
+  }
+}
+```
+
+- Response to Get Target Device Table:
+
+```json
+{
+  "transaction_id": "3",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_get_target_device_table",
+    "status": "success",
+    "result": {
+      "payload": [
+        {"static_address": "50", "dynamic_address": "08", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "51", "dynamic_address": "09", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "52", "dynamic_address": "0A", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "53", "dynamic_address": "0B", "bcr": "03", "dcr": "63", "pid": ["5A", "00", "1D", "0F", "17", "02"]}
+      ]
+    }
+  }
+}
+```
+
+#### Reset I3C Bus
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "2",
+  "command": "i3c_reset_bus",
+  "params": {}
+}
+```
+
+**Responses:**
+
+1. Initial promise indicating the command is queued:
+
+```json
+{
+  "transaction_id": "2",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_reset_bus"
+  }
+}
+```
+
+2. Final response indicating the outcome of the reset command:
+
+```json
+{
+  "transaction_id": "2",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_reset_bus",
+    "status": "success",
+    "result": {}
+  }
+}
+```
+
+3. Response indicating the state of the target device table after reset:
+
+```json
+{
+  "transaction_id": "2",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_get_target_device_table",
+    "status": "success",
+    "result": {
+      "payload": []
+    }
+  }
+}
+```
+
+#### Set Bus Voltage
+
+Set the bus voltage for the connected device.
+
+**Command Request:**
+
 ```json
 {
   "transaction_id": "4",
+  "command": "i3c_set_bus_voltage",
+  "params": {
+    "busVoltageInV": "3.3"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate promise response:
+
+```json
+{
+  "transaction_id": "4",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_set_bus_voltage"
+  }
+}
+```
+
+- Final response:
+
+```json
+{
+  "transaction_id": "4",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_set_bus_voltage",
+    "status": "success",
+    "result": {}
+  }
+}
+```
+
+#### I3C Get Target Device Table
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "6",
+  "command": "i3c_get_target_device_table",
+  "params": {}
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "6",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_get_target_device_table"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "6",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_get_target_device_table",
+    "status": "success",
+    "result": {
+      "payload": [
+        {"static_address": "50", "dynamic_address": "08", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "51", "dynamic_address": "09", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "52", "dynamic_address": "0A", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "53", "dynamic_address": "0B", "bcr": "03", "dcr": "63", "pid": ["5A", "00", "1D", "0F", "17", "02"]}
+      ]
+    }
+  }
+}
+```
+
+#### I3C Write
+
+##### Write Using Subaddress
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "5",
   "command": "i3c_write_using_subaddress",
   "params": {
     "address": "08",
     "subaddress": "0000",
     "mode": "SDR",
     "pushPullClockFrequencyInMHz": "5",
-    "openDrainClockFrequencyInKHz": "1250",
-    "writeBuffer": "04"
+    "openDrainClockFrequencyInKHz": "2500",
+    "writeBuffer": "DEADBEEF"
   }
 }
 ```
 
-##### `i3c_read_using_subaddress`
-Reads data from a device using subaddressing.
+**Responses:**
 
-**Parameters:**
-```json
-{
-  "address": "string",                        // Device address (hex)
-  "subaddress": "string",                     // Register/subaddress (hex)
-  "mode": "string",                           // Transfer mode ("SDR", "HDR-DDR")
-  "pushPullClockFrequencyInMHz": "string",    // Push-pull clock frequency
-  "openDrainClockFrequencyInKHz": "string",   // Open-drain clock frequency
-  "bytesToRead": "string"                     // Number of bytes to read
-}
-```
+- Immediate Promise:
 
-**Example:**
 ```json
 {
   "transaction_id": "5",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_write_using_subaddress"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "5",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_write_using_subaddress",
+    "status": "success",
+    "result": {
+      "payload": [],
+      "payload_size": 0
+    }
+  }
+}
+```
+
+##### Direct Write
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "6",
+  "command": "i3c_write",
+  "params": {
+    "address": "08",
+    "mode": "SDR",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "writeBuffer": "0000"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise:
+
+```json
+{
+  "transaction_id": "6",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_write"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "6",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_write",
+    "status": "success",
+    "result": {
+      "payload": [],
+      "payload_size": 0
+    }
+  }
+}
+```
+
+#### I3C Read
+
+##### Basic Read
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "7",
+  "command": "i3c_read",
+  "params": {
+    "address": "08",
+    "mode": "SDR",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "bytesToRead": "5"
+  }
+}
+```
+
+**Responses:**
+
+```json
+{
+  "transaction_id": "7",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_read"
+  }
+}
+```
+
+```json
+{
+  "transaction_id": "7",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_read",
+    "status": "success",
+    "result": {
+      "payload": ["DE", "AD", "BE", "EF", "00"],
+      "payload_size": 5
+    }
+  }
+}
+```
+
+##### Read using Subaddress
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "8",
   "command": "i3c_read_using_subaddress",
   "params": {
     "address": "08",
-    "subaddress": "0000",
     "mode": "SDR",
     "pushPullClockFrequencyInMHz": "5",
-    "openDrainClockFrequencyInKHz": "1250",
-    "bytesToRead": "1"
+    "openDrainClockFrequencyInKHz": "2500",
+    "subaddress": "0000",
+    "bytesToRead": "5"
+  }
+}
+```
+
+**Responses:**
+
+```json
+{
+  "transaction_id": "8",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_read_using_subaddress"
+  }
+}
+```
+
+```json
+{
+  "transaction_id": "8",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_read_using_subaddress",
+    "status": "success",
+    "result": {
+      "payload": ["DE", "AD", "BE", "EF", "00"],
+      "payload_size": 5
+    }
   }
 }
 ```
