@@ -50,7 +50,7 @@ public class BridgeClient : IDisposable
     {
         var processStartInfo = new ProcessStartInfo
         {
-            FileName = "bridge",
+            FileName = "bmcbridge",
             Arguments = commandAdaptor,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
@@ -75,7 +75,7 @@ public class BridgeClient : IDisposable
 
     public async Task<List<CommandResponse>> SendCommand(
         string command,
-        Dictionary<string, object> paramsDict = null
+        Dictionary<string, object>? paramsDict = null
     )
     {
         transactionId++;
