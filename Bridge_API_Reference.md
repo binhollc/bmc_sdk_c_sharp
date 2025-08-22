@@ -20,7 +20,7 @@
 
 ## Overview
 
-The Binho Mission Control Bridge (BMC Bridge) is a service layer that provides a unified interface for communicating with Binho USB host adapters (Nova and Supernova). The Bridge accepts JSON-formatted commands via stdin and returns JSON-formatted responses via stdout, enabling easy integration with various programming languages and development environments.
+The Binho Mission Control Bridge (BMC Bridge) is a service layer that provides a unified interface for communicating with Binho USB host adapters (Supernova and Pulsar). The Bridge accepts JSON-formatted commands via stdin and returns JSON-formatted responses via stdout, enabling easy integration with various programming languages and development environments.
 
 ### Key Features
 - **Unified API**: Consistent interface across all supported host adapters
@@ -48,8 +48,7 @@ bmcbridge <CommandAdaptor>
 
 **Command Adaptors:**
 - `BinhoSupernova` - For Supernova devices
-- `BinhoNova` - For Nova devices
-- `SupernovaSimulatedPort` - For simulation/testing
+- `BinhoPulsar` - For Pulsar devices
 
 ## Command Adaptors
 
@@ -65,8 +64,7 @@ Command adaptors are device-specific modules that translate generic Bridge comma
 | Adaptor | Device | Description |
 |---------|--------|-------------|
 | BinhoSupernova | Supernova | Full-featured USB host adapter |
-| BinhoNova | Nova | Compact USB host adapter |
-| SupernovaSimulatedPort | Simulation | Virtual device for testing |
+| BinhoPulsar | Pulsar | I2C, SPI, UART, GPIO USB host adapter |
 
 ## Command and Response Structure
 
