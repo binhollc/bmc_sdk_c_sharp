@@ -1928,9 +1928,34 @@ command = {
 bridge.stdin.write(json.dumps(command) + '\n')
 bridge.stdin.flush()
 
-# Read response
-response = json.loads(bridge.stdout.readline())
-print(f"Status: {response['status']}")
+# Read all responses for open command
+print("Open command responses:")
+while True:
+    response = json.loads(bridge.stdout.readline())
+    print(f"  Response: {json.dumps(response, indent=2)}")
+    if not response.get("is_promise", False):
+        break  # This is the final response
+
+# Send close command
+close_command = {
+    "transaction_id": "2",
+    "command": "close",
+    "params": {}
+}
+
+bridge.stdin.write(json.dumps(close_command) + '\n')
+bridge.stdin.flush()
+
+# Read all responses for close command
+print("\nClose command responses:")
+while True:
+    close_response = json.loads(bridge.stdout.readline())
+    print(f"  Response: {json.dumps(close_response, indent=2)}")
+    if not close_response.get("is_promise", False):
+        break  # This is the final response
+
+# Close the bridge process
+bridge.terminate()
 ```
 
 ### Advanced Features
