@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-class Program
+partial class Program
 {
     static async Task Main(string[] args)
     {
@@ -10,6 +10,8 @@ class Program
         {
             ["i3c_basics"]  = ExampleI3cBasics.Run,
             ["i3c_ibis"]    = ExampleI3cIbis.Run,
+            ["i3c_ccc"]     = ExampleI3cCcc.Run,
+            ["i2c_eeprom"]  = ExampleI2cEeprom.Run,
             // Add new examples here, like so:
             // ["example_key"] = ExampleClass.RunMethod,
         };
