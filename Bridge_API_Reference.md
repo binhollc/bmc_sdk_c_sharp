@@ -1893,11 +1893,15 @@ Console.WriteLine($"PID: {string.Join(":", payload.Select(b => $"{b:X2}"))}");
 ### Command Line Usage
 
 ```bash
-# Start Bridge
+# Start Bridge in interactive mode
 bmcbridge BinhoSupernova
 
-# Send commands via stdin
-echo '{"transaction_id":"1","command":"open","params":{"address":"SupernovaSimulatedPort"}}' | bmcbridge BinhoSupernova
+# The Bridge will start and wait for JSON commands on stdin
+# Type commands line by line (REPL style):
+
+{"transaction_id":"1","command":"open","params":{"address":"SupernovaSimulatedPort"}}
+{"transaction_id":"2","command":"i3c_init_bus","params":{"busVoltageInV":"3.3"}}
+{"transaction_id":"3","command":"i3c_read","params":{"address":"08","mode":"SDR","pushPullClockFrequencyInMHz":"5","openDrainClockFrequencyInKHz":"2500","bytesToRead":"4"}}
 ```
 
 ### Python Integration
