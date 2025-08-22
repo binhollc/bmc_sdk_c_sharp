@@ -1359,60 +1359,451 @@ Writes data to an I2C device using subaddressing (register addressing).
 
 ### I3C Common Command Codes (CCC)
 
-Common Command Codes are standardized I3C commands for device management and configuration. For more information, see the [I3C Common Command Codes documentation](https://support.binho.io/user-guide/protocols-and-interfaces/i3c-common-command-codes).
+The CCC (Common Command Codes) provides a set of universal commands supported across multiple devices. The Bridge for Supernova has a few CCCs which can be used to interact with the downstream devices. This section details these CCCs. For more information on this topic see [I3C Common Command Codes](https://support.binho.io/user-guide/protocols-and-interfaces/i3c-common-command-codes#what-are-common-command-codes) section.
 
-#### `i3c_ccc_getpid`
-Retrieves the Provisioned ID (PID) from an I3C device.
+#### GETPID
 
-**Parameters:**
+**Command Request:**
+
 ```json
 {
-  "address": "string",                        // Device address (hex)
-  "pushPullClockFrequencyInMHz": "string",    // Push-pull clock frequency
-  "openDrainClockFrequencyInKHz": "string"    // Open-drain clock frequency (optional)
-}
-```
-
-**Example:**
-```json
-{
-  "transaction_id": "6",
-  "command": "i3c_ccc_getpid",
+  "transaction_id": "9",
+  "command": "i3c_ccc_send",
   "params": {
+    "cccName": "GETPID",
     "address": "08",
     "pushPullClockFrequencyInMHz": "5",
-    "openDrainClockFrequencyInKHz": "2500"
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {}
   }
 }
 ```
 
-**Response:**
+**Responses:**
+
+1. Immediate promise:
+
 ```json
 {
-  "transaction_id": "6",
+  "transaction_id": "9",
   "status": "success",
-  "type": "response",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_getpid"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "9",
+  "status": "success",
+  "type": "command_response",
   "is_promise": false,
   "data": {
+    "is_response_to": "i3c_ccc_getpid",
+    "status": "success",
     "result": {
-      "payload": ["48", "01", "23", "45", "67", "89"]
+      "payload": ["0", "0", "0", "0", "64", "65"],
+      "payload_size": 6
     }
   }
 }
 ```
 
-#### Other CCC Commands
+#### DIRECTSETMRL
 
-The Bridge supports additional CCC commands including:
-- `i3c_ccc_getbcr` - Get Bus Characteristics Register
-- `i3c_ccc_getdcr` - Get Device Characteristics Register
-- `i3c_ccc_getstatus` - Get Device Status
-- `i3c_ccc_setmrl` - Set Maximum Read Length
-- `i3c_ccc_getmrl` - Get Maximum Read Length
-- `i3c_ccc_setmwl` - Set Maximum Write Length
-- `i3c_ccc_getmwl` - Get Maximum Write Length
+**Command Request:**
 
-For the complete list of supported CCCs, refer to the [supported CCCs documentation](https://support.binho.io/user-guide/protocols-and-interfaces/i3c-common-command-codes#supported-cccs).
+```json
+{
+  "transaction_id": "10",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "DIRECTSETMRL",
+    "address": "08",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": { 
+      "cccDataBuffer": "10"
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "10",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_direct_setmrl"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "10",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_direct_setmrl",
+    "status": "success",
+    "result": {
+      "payload": ["00", "00"],
+      "payload_size": 2
+    }
+  }
+}
+```
+
+#### DIRECTENEC
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "11",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "DIRECTENEC",
+    "address": "08",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": { 
+      "events": ["ENINT", "ENCR", "ENHJ"]
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "11",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_direct_enec"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "11",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_direct_enec",
+    "status": "success"
+  }
+}
+```
+
+**Note:** For `DIRECTDISEC` the response's format is very similar, except that the accepted events are ["DISINT", "DISCR", "DISHJ"]. For `BROADCASTENEC` and `BROADCASTDISEC` is also similar but address parameter is not required.
+
+#### SETAASA
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "12",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "SETAASA",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {
+      "staticAddresses": ["08", "09", "0A"]
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "12",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_setaasa"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "12",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_setaasa",
+    "status": "success"
+  }
+}
+```
+
+#### ENTDAA
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "13",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "ENTDAA",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {
+      "targetDeviceTable": {
+        "BMM350": {
+          "staticAddress": "0x14",
+          "dynamicAddress": "0x0C",
+          "i3cFeatures": "0x0B",
+          "maxIbiPayloadLength": "0xE9",
+          "bcr": "0x26",
+          "dcr": "0x43",
+          "pid": ["0x07", "0x70", "0x10", "0x33", "0x00", "0x00"]
+        }
+      }
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "13",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_entdaa"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "13",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_entdaa",
+    "status": "success"
+  }
+}
+```
+
+**Note:** When using this command is necessary to previously run `i3c_init_bus` followed by `i3c_reset_bus`.
+
+#### BROADCASTRSTACT
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "14",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "BROADCASTRSTACT",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {
+      "definingByte": "02"
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "14",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_broadcast_rstact"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "14",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_broadcast_rstact",
+    "status": "success"
+  }
+}
+```
+
+**Note:** Similar to `DIRECTRSTACT` but does not require an address parameter.
+
+#### DIRECTENDXFER
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "15",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "DIRECTENDXFER",
+    "address": "08",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {
+      "definingByte": "AA",
+      "data": "20"
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "15",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_direct_endxfer"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "15",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_direct_endxfer",
+    "status": "success",
+    "result": {
+      "payload": [0],
+      "payload_size": 1
+    }
+  }
+}
+```
+
+**Note:** Similar to `BROADCASTENDXFER`, but requires an address parameter.
+
+#### BROADCASTSETXTIME
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "16",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "BROADCASTSETXTIME",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {
+      "definingByte": "3F",
+      "data": ["DE", "AD", "BE", "EF"]
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "16",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_broadcast_setxtime"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "16",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_broadcast_setxtime",
+    "status": "success",
+    "result": {
+      "payload": [0, 0, 0, 0, 0],
+      "payload_size": 5
+    }
+  }
+}
+```
+
+**Note:** Similar to `DIRECTSETXTIME`, but does not require an address parameter.
+
+#### Currently Supported CCCs
+
+Refer to [this table](https://support.binho.io/user-guide/protocols-and-interfaces/i3c-common-command-codes#supported-cccs) for current support status (see Bridge column).
 
 ## Response Handling
 
