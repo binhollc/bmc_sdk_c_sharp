@@ -10,6 +10,9 @@
 - [Protocol Specific Commands](#protocol-specific-commands)
   - [I3C Commands](#i3c-commands)
   - [I2C Commands](#i2c-commands)
+  - [SPI Commands](#spi-commands)
+  - [UART Commands](#uart-commands)
+  - [GPIO Commands](#gpio-commands)
   - [I3C Common Command Codes (CCC)](#i3c-common-command-codes-ccc)
 - [Response Handling](#response-handling)
 - [Error Handling](#error-handling)
@@ -17,7 +20,7 @@
 
 ## Overview
 
-The Binho Mission Control Bridge (BMC Bridge) is a service layer that provides a unified interface for communicating with Binho USB host adapters (Nova and Supernova). The Bridge accepts JSON-formatted commands via stdin and returns JSON-formatted responses via stdout, enabling easy integration with various programming languages and development environments.
+The Binho Mission Control Bridge (BMC Bridge) is a service layer that provides a unified interface for communicating with Binho USB host adapters (Supernova and Pulsar). The Bridge accepts JSON-formatted commands via stdin and returns JSON-formatted responses via stdout, enabling easy integration with various programming languages and development environments.
 
 ### Key Features
 - **Unified API**: Consistent interface across all supported host adapters
@@ -45,8 +48,7 @@ bmcbridge <CommandAdaptor>
 
 **Command Adaptors:**
 - `BinhoSupernova` - For Supernova devices
-- `BinhoNova` - For Nova devices
-- `SupernovaSimulatedPort` - For simulation/testing
+- `BinhoPulsar` - For Pulsar devices
 
 ## Command Adaptors
 
@@ -62,8 +64,7 @@ Command adaptors are device-specific modules that translate generic Bridge comma
 | Adaptor | Device | Description |
 |---------|--------|-------------|
 | BinhoSupernova | Supernova | Full-featured USB host adapter |
-| BinhoNova | Nova | Compact USB host adapter |
-| SupernovaSimulatedPort | Simulation | Virtual device for testing |
+| BinhoPulsar | Pulsar | I2C, SPI, UART, GPIO USB host adapter |
 
 ## Command and Response Structure
 
@@ -168,22 +169,13 @@ Retrieves USB device information strings.
 
 ### I3C Commands
 
-#### Bus Initialization
+#### I3C Bus Initialization
 
-##### `i3c_init_bus`
-Initializes the I3C bus with specified voltage.
+**Command Request:**
 
-**Parameters:**
 ```json
 {
-  "busVoltageInV": "string"  // Bus voltage (e.g., "1.8", "3.3")
-}
-```
-
-**Example:**
-```json
-{
-  "transaction_id": "3",
+  "transaction_id": "1",
   "command": "i3c_init_bus",
   "params": {
     "busVoltageInV": "3.3"
@@ -191,66 +183,444 @@ Initializes the I3C bus with specified voltage.
 }
 ```
 
-#### Data Transfer
+**Responses:**
 
-##### `i3c_write_using_subaddress`
-Writes data to a device using subaddressing.
+- Immediate Promise Response:
 
-**Parameters:**
 ```json
 {
-  "address": "string",                        // Device address (hex)
-  "subaddress": "string",                     // Register/subaddress (hex)
-  "mode": "string",                           // Transfer mode ("SDR", "HDR-DDR")
-  "pushPullClockFrequencyInMHz": "string",    // Push-pull clock frequency
-  "openDrainClockFrequencyInKHz": "string",   // Open-drain clock frequency
-  "writeBuffer": "string"                     // Data to write (hex)
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_init_bus"
+  }
 }
 ```
 
-**Example:**
+- Final Response to Setting Bus Voltage:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_set_bus_voltage",
+    "status": "success",
+    "result": {}
+  }
+}
+```
+
+- Final Response to Bus Initialization:
+
+```json
+{
+  "transaction_id": "2",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_init_bus",
+    "status": "success",
+    "result": {}
+  }
+}
+```
+
+- Response to Get Target Device Table:
+
+```json
+{
+  "transaction_id": "3",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_get_target_device_table",
+    "status": "success",
+    "result": {
+      "payload": [
+        {"static_address": "50", "dynamic_address": "08", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "51", "dynamic_address": "09", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "52", "dynamic_address": "0A", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "53", "dynamic_address": "0B", "bcr": "03", "dcr": "63", "pid": ["5A", "00", "1D", "0F", "17", "02"]}
+      ]
+    }
+  }
+}
+```
+
+#### Reset I3C Bus
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "2",
+  "command": "i3c_reset_bus",
+  "params": {}
+}
+```
+
+**Responses:**
+
+1. Initial promise indicating the command is queued:
+
+```json
+{
+  "transaction_id": "2",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_reset_bus"
+  }
+}
+```
+
+2. Final response indicating the outcome of the reset command:
+
+```json
+{
+  "transaction_id": "2",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_reset_bus",
+    "status": "success",
+    "result": {}
+  }
+}
+```
+
+3. Response indicating the state of the target device table after reset:
+
+```json
+{
+  "transaction_id": "2",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_get_target_device_table",
+    "status": "success",
+    "result": {
+      "payload": []
+    }
+  }
+}
+```
+
+#### Set Bus Voltage
+
+Set the bus voltage for the connected device.
+
+**Command Request:**
+
 ```json
 {
   "transaction_id": "4",
+  "command": "i3c_set_bus_voltage",
+  "params": {
+    "busVoltageInV": "3.3"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate promise response:
+
+```json
+{
+  "transaction_id": "4",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_set_bus_voltage"
+  }
+}
+```
+
+- Final response:
+
+```json
+{
+  "transaction_id": "4",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_set_bus_voltage",
+    "status": "success",
+    "result": {}
+  }
+}
+```
+
+#### I3C Get Target Device Table
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "6",
+  "command": "i3c_get_target_device_table",
+  "params": {}
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "6",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_get_target_device_table"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "6",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_get_target_device_table",
+    "status": "success",
+    "result": {
+      "payload": [
+        {"static_address": "50", "dynamic_address": "08", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "51", "dynamic_address": "09", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "52", "dynamic_address": "0A", "bcr": "10", "dcr": "C3", "pid": ["65", "64", "00", "00", "00", "00"]},
+        {"static_address": "53", "dynamic_address": "0B", "bcr": "03", "dcr": "63", "pid": ["5A", "00", "1D", "0F", "17", "02"]}
+      ]
+    }
+  }
+}
+```
+
+#### I3C Write
+
+##### Write Using Subaddress
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "5",
   "command": "i3c_write_using_subaddress",
   "params": {
     "address": "08",
     "subaddress": "0000",
     "mode": "SDR",
     "pushPullClockFrequencyInMHz": "5",
-    "openDrainClockFrequencyInKHz": "1250",
-    "writeBuffer": "04"
+    "openDrainClockFrequencyInKHz": "2500",
+    "writeBuffer": "DEADBEEF"
   }
 }
 ```
 
-##### `i3c_read_using_subaddress`
-Reads data from a device using subaddressing.
+**Responses:**
 
-**Parameters:**
-```json
-{
-  "address": "string",                        // Device address (hex)
-  "subaddress": "string",                     // Register/subaddress (hex)
-  "mode": "string",                           // Transfer mode ("SDR", "HDR-DDR")
-  "pushPullClockFrequencyInMHz": "string",    // Push-pull clock frequency
-  "openDrainClockFrequencyInKHz": "string",   // Open-drain clock frequency
-  "bytesToRead": "string"                     // Number of bytes to read
-}
-```
+- Immediate Promise:
 
-**Example:**
 ```json
 {
   "transaction_id": "5",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_write_using_subaddress"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "5",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_write_using_subaddress",
+    "status": "success",
+    "result": {
+      "payload": [],
+      "payload_size": 0
+    }
+  }
+}
+```
+
+##### Direct Write
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "6",
+  "command": "i3c_write",
+  "params": {
+    "address": "08",
+    "mode": "SDR",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "writeBuffer": "0000"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise:
+
+```json
+{
+  "transaction_id": "6",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_write"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "6",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_write",
+    "status": "success",
+    "result": {
+      "payload": [],
+      "payload_size": 0
+    }
+  }
+}
+```
+
+#### I3C Read
+
+##### Basic Read
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "7",
+  "command": "i3c_read",
+  "params": {
+    "address": "08",
+    "mode": "SDR",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "bytesToRead": "5"
+  }
+}
+```
+
+**Responses:**
+
+```json
+{
+  "transaction_id": "7",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_read"
+  }
+}
+```
+
+```json
+{
+  "transaction_id": "7",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_read",
+    "status": "success",
+    "result": {
+      "payload": ["DE", "AD", "BE", "EF", "00"],
+      "payload_size": 5
+    }
+  }
+}
+```
+
+##### Read using Subaddress
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "8",
   "command": "i3c_read_using_subaddress",
   "params": {
     "address": "08",
-    "subaddress": "0000",
     "mode": "SDR",
     "pushPullClockFrequencyInMHz": "5",
-    "openDrainClockFrequencyInKHz": "1250",
-    "bytesToRead": "1"
+    "openDrainClockFrequencyInKHz": "2500",
+    "subaddress": "0000",
+    "bytesToRead": "5"
+  }
+}
+```
+
+**Responses:**
+
+```json
+{
+  "transaction_id": "8",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_read_using_subaddress"
+  }
+}
+```
+
+```json
+{
+  "transaction_id": "8",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_read_using_subaddress",
+    "status": "success",
+    "result": {
+      "payload": ["DE", "AD", "BE", "EF", "00"],
+      "payload_size": 5
+    }
   }
 }
 ```
@@ -451,62 +821,989 @@ Writes data to an I2C device using subaddressing (register addressing).
 }
 ```
 
-### I3C Common Command Codes (CCC)
+### SPI Commands
 
-Common Command Codes are standardized I3C commands for device management and configuration. For more information, see the [I3C Common Command Codes documentation](https://support.binho.io/user-guide/protocols-and-interfaces/i3c-common-command-codes).
+#### SPI Initialization
 
-#### `i3c_ccc_getpid`
-Retrieves the Provisioned ID (PID) from an I3C device.
+**Command Request:**
 
-**Parameters:**
 ```json
 {
-  "address": "string",                        // Device address (hex)
-  "pushPullClockFrequencyInMHz": "string",    // Push-pull clock frequency
-  "openDrainClockFrequencyInKHz": "string"    // Open-drain clock frequency (optional)
-}
-```
-
-**Example:**
-```json
-{
-  "transaction_id": "6",
-  "command": "i3c_ccc_getpid",
+  "transaction_id": "1",
+  "command": "spi_init",
   "params": {
-    "address": "08",
-    "pushPullClockFrequencyInMHz": "5",
-    "openDrainClockFrequencyInKHz": "2500"
+    "mode": "<0..3>",
+    "clockFrequencyInKHz": "<Unsigned Integer>",
+    "bitOrder": "<MSB|LSB>",
+    "bitsPerTransfer": "<8|16>",
+    "chipSelect": "<0..3>",
+    "chipSelectPol": "<0,1>"
   }
 }
 ```
 
-**Response:**
+**Responses:**
+
+- Immediate Promise Response:
+
 ```json
 {
-  "transaction_id": "6",
+  "transaction_id": "1",
   "status": "success",
-  "type": "response",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "spi_init"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
   "is_promise": false,
   "data": {
-    "result": {
-      "payload": ["48", "01", "23", "45", "67", "89"]
+    "is_response_to": "spi_init",
+    "status": "success"
+  }
+}
+```
+
+#### SPI Configuration
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "spi_config",
+  "params": {
+    "mode": "<0..3>",
+    "clockFrequencyInKHz": "<Unsigned Integer>",
+    "bitOrder": "<MSB|LSB>",
+    "bitsPerTransfer": "<8|16>",
+    "chipSelect": "<0..3>",
+    "chipSelectPol": "<0,1>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "spi_config"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "spi_config",
+    "status": "success"
+  }
+}
+```
+
+#### SPI Transfer
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "spi_transfer",
+  "params": {
+    "bytesToRead": "<Unsigned Integer>",
+    "writeBuffer": "<Hex String (e.g. DEADBEEF)>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "spi_transfer"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "spi_transfer",
+    "status": "success",
+    "payload_length": "<Unsigned Integer>",
+    "data": ["DE", "AD", "BE", "EF"]
+  }
+}
+```
+
+### UART Commands
+
+#### UART Initialization
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "uart_init",
+  "params": {
+    "baudRate": "<600|1200|2400|4800|9600|14400|19200|38400|56000|57600|115200>",
+    "hardwareHandShake": <Boolean>,
+    "parity": "<0|1|2>",
+    "dataSize": "<0|1>",
+    "stopBit": "1"
+  }
+}
+```
+
+**Field Descriptions:**
+- **`parity`**: Sets the UART parity mode:
+  - `0` = No parity
+  - `1` = Even parity
+  - `2` = Odd parity
+- **`dataSize`**: Defines the number of data bits per frame:
+  - `0` = 7-bit
+  - `1` = 8-bit
+- **`stopBit`**: Selects the number of stop bits:
+  - `0` = 1 stop bit
+  - `1` = 2 stop bits
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "uart_init"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "uart_init",
+    "status": "success"
+  }
+}
+```
+
+#### UART Configuration
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "uart_config",
+  "params": {
+    "baudRate": "<600|1200|2400|4800|9600|14400|19200|38400|56000|57600|115200>",
+    "hardwareHandShake": <Boolean>,
+    "parity": "<0|1|2>",
+    "dataSize": "<0|1>",
+    "stopBit": "1"
+  }
+}
+```
+
+**Field Descriptions:**
+- **`parity`**: Sets the UART parity mode:
+  - `0` = No parity
+  - `1` = Even parity
+  - `2` = Odd parity
+- **`dataSize`**: Defines the number of data bits per frame:
+  - `0` = 7-bit
+  - `1` = 8-bit
+- **`stopBit`**: Selects the number of stop bits:
+  - `0` = 1 stop bit
+  - `1` = 2 stop bits
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "uart_config"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "uart_config",
+    "status": "success"
+  }
+}
+```
+
+#### UART Send
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "uart_send",
+  "params": {
+    "writeBuffer": "<Hex String (e.g. DEADBEEF)>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "uart_send"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "uart_send",
+    "status": "success"
+  }
+}
+```
+
+#### UART Interruption Notification Message
+
+```json
+{
+  "transaction_id": "0",
+  "status": "success",
+  "type": "notification",
+  "is_promise": false,
+  "data": {
+    "type": "UART_MESSAGE_RECEIVED",
+    "payload": ["DE", "AD", "BE", "EF"],
+    "payload_length": 4
+  }
+}
+```
+
+### GPIO Commands
+
+#### GPIO Configuration
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "gpio_config_pin",
+  "params": {
+    "pinNumber": "<1..6>",
+    "functionality": "<DIN|DOUT>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "gpio_config_pin"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "gpio_config_pin",
+    "status": "success"
+  }
+}
+```
+
+#### GPIO Read
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "gpio_digital_read",
+  "params": {
+    "pinNumber": "<1..6>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "gpio_digital_read"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "gpio_digital_read",
+    "status": "success",
+    "logic_level": "<LOW|HIGH>"
+  }
+}
+```
+
+#### GPIO Write
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "gpio_digital_write",
+  "params": {
+    "pinNumber": "<1..6>",
+    "logicLevel": "<0|1>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "gpio_digital_write"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "gpio_digital_write",
+    "status": "success"
+  }
+}
+```
+
+#### Configure GPIO Interruptions
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "gpio_set_interrupt",
+  "params": {
+    "pinNumber": "<1..6>",
+    "edgeTrigger": "<RISING|FALLING|BOTH>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "gpio_set_interrupt"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "gpio_set_interrupt",
+    "status": "success"
+  }
+}
+```
+
+#### GPIO Interruption Notification Message
+
+```json
+{
+  "transaction_id": "0",
+  "status": "success",
+  "type": "notification",
+  "is_promise": false,
+  "data": {
+    "payload": {
+      "pin": "<1..6>"
     }
   }
 }
 ```
 
-#### Other CCC Commands
+### I3C Common Command Codes (CCC)
 
-The Bridge supports additional CCC commands including:
-- `i3c_ccc_getbcr` - Get Bus Characteristics Register
-- `i3c_ccc_getdcr` - Get Device Characteristics Register
-- `i3c_ccc_getstatus` - Get Device Status
-- `i3c_ccc_setmrl` - Set Maximum Read Length
-- `i3c_ccc_getmrl` - Get Maximum Read Length
-- `i3c_ccc_setmwl` - Set Maximum Write Length
-- `i3c_ccc_getmwl` - Get Maximum Write Length
+The CCC (Common Command Codes) provides a set of universal commands supported across multiple devices. The Bridge for Supernova has a few CCCs which can be used to interact with the downstream devices. This section details these CCCs. For more information on this topic see [I3C Common Command Codes](https://support.binho.io/user-guide/protocols-and-interfaces/i3c-common-command-codes#what-are-common-command-codes) section.
 
-For the complete list of supported CCCs, refer to the [supported CCCs documentation](https://support.binho.io/user-guide/protocols-and-interfaces/i3c-common-command-codes#supported-cccs).
+#### GETPID
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "9",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "GETPID",
+    "address": "08",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {}
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "9",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_getpid"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "9",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_getpid",
+    "status": "success",
+    "result": {
+      "payload": ["0", "0", "0", "0", "64", "65"],
+      "payload_size": 6
+    }
+  }
+}
+```
+
+#### DIRECTSETMRL
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "10",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "DIRECTSETMRL",
+    "address": "08",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": { 
+      "cccDataBuffer": "10"
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "10",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_direct_setmrl"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "10",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_direct_setmrl",
+    "status": "success",
+    "result": {
+      "payload": ["00", "00"],
+      "payload_size": 2
+    }
+  }
+}
+```
+
+#### DIRECTENEC
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "11",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "DIRECTENEC",
+    "address": "08",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": { 
+      "events": ["ENINT", "ENCR", "ENHJ"]
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "11",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_direct_enec"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "11",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_direct_enec",
+    "status": "success"
+  }
+}
+```
+
+**Note:** For `DIRECTDISEC` the response's format is very similar, except that the accepted events are ["DISINT", "DISCR", "DISHJ"]. For `BROADCASTENEC` and `BROADCASTDISEC` is also similar but address parameter is not required.
+
+#### SETAASA
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "12",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "SETAASA",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {
+      "staticAddresses": ["08", "09", "0A"]
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "12",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_setaasa"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "12",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_setaasa",
+    "status": "success"
+  }
+}
+```
+
+#### ENTDAA
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "13",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "ENTDAA",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {
+      "targetDeviceTable": {
+        "BMM350": {
+          "staticAddress": "0x14",
+          "dynamicAddress": "0x0C",
+          "i3cFeatures": "0x0B",
+          "maxIbiPayloadLength": "0xE9",
+          "bcr": "0x26",
+          "dcr": "0x43",
+          "pid": ["0x07", "0x70", "0x10", "0x33", "0x00", "0x00"]
+        }
+      }
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "13",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_entdaa"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "13",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_entdaa",
+    "status": "success"
+  }
+}
+```
+
+**Note:** When using this command is necessary to previously run `i3c_init_bus` followed by `i3c_reset_bus`.
+
+#### BROADCASTRSTACT
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "14",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "BROADCASTRSTACT",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {
+      "definingByte": "02"
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "14",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_broadcast_rstact"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "14",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_broadcast_rstact",
+    "status": "success"
+  }
+}
+```
+
+**Note:** Similar to `DIRECTRSTACT` but does not require an address parameter.
+
+#### DIRECTENDXFER
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "15",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "DIRECTENDXFER",
+    "address": "08",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {
+      "definingByte": "AA",
+      "data": "20"
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "15",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_direct_endxfer"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "15",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_direct_endxfer",
+    "status": "success",
+    "result": {
+      "payload": [0],
+      "payload_size": 1
+    }
+  }
+}
+```
+
+**Note:** Similar to `BROADCASTENDXFER`, but requires an address parameter.
+
+#### BROADCASTSETXTIME
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "16",
+  "command": "i3c_ccc_send",
+  "params": {
+    "cccName": "BROADCASTSETXTIME",
+    "pushPullClockFrequencyInMHz": "5",
+    "openDrainClockFrequencyInKHz": "2500",
+    "cccParams": {
+      "definingByte": "3F",
+      "data": ["DE", "AD", "BE", "EF"]
+    }
+  }
+}
+```
+
+**Responses:**
+
+1. Immediate promise:
+
+```json
+{
+  "transaction_id": "16",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "i3c_ccc_broadcast_setxtime"
+  }
+}
+```
+
+2. Command result:
+
+```json
+{
+  "transaction_id": "16",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "i3c_ccc_broadcast_setxtime",
+    "status": "success",
+    "result": {
+      "payload": [0, 0, 0, 0, 0],
+      "payload_size": 5
+    }
+  }
+}
+```
+
+**Note:** Similar to `DIRECTSETXTIME`, but does not require an address parameter.
+
+#### Currently Supported CCCs
+
+Refer to [this table](https://support.binho.io/user-guide/protocols-and-interfaces/i3c-common-command-codes#supported-cccs) for current support status (see Bridge column).
 
 ## Response Handling
 
@@ -596,11 +1893,15 @@ Console.WriteLine($"PID: {string.Join(":", payload.Select(b => $"{b:X2}"))}");
 ### Command Line Usage
 
 ```bash
-# Start Bridge
+# Start Bridge in interactive mode
 bmcbridge BinhoSupernova
 
-# Send commands via stdin
-echo '{"transaction_id":"1","command":"open","params":{"address":"SupernovaSimulatedPort"}}' | bmcbridge BinhoSupernova
+# The Bridge will start and wait for JSON commands on stdin
+# Type commands line by line (REPL style):
+
+{"transaction_id":"1","command":"open","params":{"address":"SupernovaSimulatedPort"}}
+{"transaction_id":"2","command":"i3c_init_bus","params":{"busVoltageInV":"3.3"}}
+{"transaction_id":"3","command":"i3c_read","params":{"address":"08","mode":"SDR","pushPullClockFrequencyInMHz":"5","openDrainClockFrequencyInKHz":"2500","bytesToRead":"4"}}
 ```
 
 ### Python Integration
@@ -627,9 +1928,34 @@ command = {
 bridge.stdin.write(json.dumps(command) + '\n')
 bridge.stdin.flush()
 
-# Read response
-response = json.loads(bridge.stdout.readline())
-print(f"Status: {response['status']}")
+# Read all responses for open command
+print("Open command responses:")
+while True:
+    response = json.loads(bridge.stdout.readline())
+    print(f"  Response: {json.dumps(response, indent=2)}")
+    if not response.get("is_promise", False):
+        break  # This is the final response
+
+# Send close command
+close_command = {
+    "transaction_id": "2",
+    "command": "close",
+    "params": {}
+}
+
+bridge.stdin.write(json.dumps(close_command) + '\n')
+bridge.stdin.flush()
+
+# Read all responses for close command
+print("\nClose command responses:")
+while True:
+    close_response = json.loads(bridge.stdout.readline())
+    print(f"  Response: {json.dumps(close_response, indent=2)}")
+    if not close_response.get("is_promise", False):
+        break  # This is the final response
+
+# Close the bridge process
+bridge.terminate()
 ```
 
 ### Advanced Features
