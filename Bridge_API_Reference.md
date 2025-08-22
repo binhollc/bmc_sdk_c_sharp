@@ -10,6 +10,7 @@
 - [Protocol Specific Commands](#protocol-specific-commands)
   - [I3C Commands](#i3c-commands)
   - [I2C Commands](#i2c-commands)
+  - [SPI Commands](#spi-commands)
   - [I3C Common Command Codes (CCC)](#i3c-common-command-codes-ccc)
 - [Response Handling](#response-handling)
 - [Error Handling](#error-handling)
@@ -447,6 +448,155 @@ Writes data to an I2C device using subaddressing (register addressing).
     "subaddress": "0001",
     "writeBuffer": "DEADBEEF",
     "clockFrequencyInKHz": "400"
+  }
+}
+```
+
+### SPI Commands
+
+#### SPI Initialization
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "spi_init",
+  "params": {
+    "mode": "<0..3>",
+    "clockFrequencyInKHz": "<Unsigned Integer>",
+    "bitOrder": "<MSB|LSB>",
+    "bitsPerTransfer": "<8|16>",
+    "chipSelect": "<0..3>",
+    "chipSelectPol": "<0,1>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "spi_init"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "spi_init",
+    "status": "success"
+  }
+}
+```
+
+#### SPI Configuration
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "spi_config",
+  "params": {
+    "mode": "<0..3>",
+    "clockFrequencyInKHz": "<Unsigned Integer>",
+    "bitOrder": "<MSB|LSB>",
+    "bitsPerTransfer": "<8|16>",
+    "chipSelect": "<0..3>",
+    "chipSelectPol": "<0,1>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "spi_config"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "spi_config",
+    "status": "success"
+  }
+}
+```
+
+#### SPI Transfer
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "spi_transfer",
+  "params": {
+    "bytesToRead": "<Unsigned Integer>",
+    "writeBuffer": "<Hex String (e.g. DEADBEEF)>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "spi_transfer"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "spi_transfer",
+    "status": "success",
+    "payload_length": "<Unsigned Integer>",
+    "data": ["DE", "AD", "BE", "EF"]
   }
 }
 ```
