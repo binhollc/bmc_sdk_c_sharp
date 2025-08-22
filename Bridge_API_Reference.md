@@ -12,6 +12,7 @@
   - [I2C Commands](#i2c-commands)
   - [SPI Commands](#spi-commands)
   - [UART Commands](#uart-commands)
+  - [GPIO Commands](#gpio-commands)
   - [I3C Common Command Codes (CCC)](#i3c-common-command-codes-ccc)
 - [Response Handling](#response-handling)
 - [Error Handling](#error-handling)
@@ -783,6 +784,208 @@ Writes data to an I2C device using subaddressing (register addressing).
     "type": "UART_MESSAGE_RECEIVED",
     "payload": ["DE", "AD", "BE", "EF"],
     "payload_length": 4
+  }
+}
+```
+
+### GPIO Commands
+
+#### GPIO Configuration
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "gpio_config_pin",
+  "params": {
+    "pinNumber": "<1..6>",
+    "functionality": "<DIN|DOUT>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "gpio_config_pin"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "gpio_config_pin",
+    "status": "success"
+  }
+}
+```
+
+#### GPIO Read
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "gpio_digital_read",
+  "params": {
+    "pinNumber": "<1..6>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "gpio_digital_read"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "gpio_digital_read",
+    "status": "success",
+    "logic_level": "<LOW|HIGH>"
+  }
+}
+```
+
+#### GPIO Write
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "gpio_digital_write",
+  "params": {
+    "pinNumber": "<1..6>",
+    "logicLevel": "<0|1>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "gpio_digital_write"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "gpio_digital_write",
+    "status": "success"
+  }
+}
+```
+
+#### Configure GPIO Interruptions
+
+**Command Request:**
+
+```json
+{
+  "transaction_id": "1",
+  "command": "gpio_set_interrupt",
+  "params": {
+    "pinNumber": "<1..6>",
+    "edgeTrigger": "<RISING|FALLING|BOTH>"
+  }
+}
+```
+
+**Responses:**
+
+- Immediate Promise Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": true,
+  "data": {
+    "command": "gpio_set_interrupt"
+  }
+}
+```
+
+- Final Response:
+
+```json
+{
+  "transaction_id": "1",
+  "status": "success",
+  "type": "command_response",
+  "is_promise": false,
+  "data": {
+    "is_response_to": "gpio_set_interrupt",
+    "status": "success"
+  }
+}
+```
+
+#### GPIO Interruption Notification Message
+
+```json
+{
+  "transaction_id": "0",
+  "status": "success",
+  "type": "notification",
+  "is_promise": false,
+  "data": {
+    "payload": {
+      "pin": "<1..6>"
+    }
   }
 }
 ```
